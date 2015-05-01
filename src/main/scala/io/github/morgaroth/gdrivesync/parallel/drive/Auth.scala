@@ -1,8 +1,7 @@
-package io.github.morgaroth.gdrivesync.api
+package io.github.morgaroth.gdrivesync.parallel.drive
 
 import java.io._
 import java.util
-import java.util.Properties
 
 import com.google.api.client.auth.oauth2.Credential
 import com.google.api.client.googleapis.auth.oauth2.{GoogleAuthorizationCodeFlow, GoogleClientSecrets}
@@ -10,11 +9,11 @@ import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.client.util.store.FileDataStoreFactory
-import com.google.api.services.drive.DriveScopes.{DRIVE, DRIVE_APPDATA, DRIVE_METADATA}
+import com.google.api.services.drive.DriveScopes.{DRIVE, DRIVE_METADATA}
+import AppName
 
 import scala.collection.JavaConverters._
-import scala.compat.Platform
-import scala.io.{Source, StdIn}
+import scala.io.StdIn
 
 object Auth {
   private val credentialFile = "/home/mateusz/projects/gdrive-scala/creds.json"
@@ -46,7 +45,7 @@ object Auth {
   def authorizeUser(userID: String = "user"): Option[Credential] =
     Auth.tryLoadPreviouslySaved(userID).orElse {
       println(Auth.authorizeRequestURL)
-      val token = StdIn.readLine(s"Please copy abowe link, paste to Internet browser and allow ${AppName.name} to access Your Google Drive. Then copy token code, were shown, and paste here.")
+      val token = StdIn.readLine(s"Please copy above link, paste to Internet browser and allow ${AppName.name} to access Your Google Drive. Then copy token code, were shown, and paste here: ")
       Auth.createToken(token, userID)
     }
 

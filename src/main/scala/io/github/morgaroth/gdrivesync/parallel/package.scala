@@ -1,6 +1,6 @@
 package io.github.morgaroth.gdrivesync
 
-package object async {
+package object parallel {
   /**
    *  Koncepcja:
    *    - zrównoloeglanie działania, przede wszystkim pobierania/wysyłania

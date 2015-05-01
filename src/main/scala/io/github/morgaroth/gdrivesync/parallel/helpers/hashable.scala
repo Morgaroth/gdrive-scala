@@ -1,4 +1,4 @@
-package io.github.morgaroth.gdrivesync.helpers
+package io.github.morgaroth.gdrivesync.parallel.helpers
 
 import java.io.File
 

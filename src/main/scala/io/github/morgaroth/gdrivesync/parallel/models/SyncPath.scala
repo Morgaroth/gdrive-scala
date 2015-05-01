@@ -1,4 +1,4 @@
-package io.github.morgaroth.gdrivesync.async.models
+package io.github.morgaroth.gdrivesync.parallel.models
 
 import java.io.File
 

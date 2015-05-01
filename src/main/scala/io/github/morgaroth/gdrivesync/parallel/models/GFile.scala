@@ -1,40 +1,27 @@
-package io.github.morgaroth.gdrivesync.models
+package io.github.morgaroth.gdrivesync.parallel.models
 
-import java.io.{FileOutputStream, File, OutputStream}
+import java.io.{File, FileOutputStream, OutputStream}
 
-import com.google.api.client.util.{Key, DateTime}
-import com.google.api.services.drive.{model, Drive}
-import io.github.morgaroth.gdrivesync.api.{Mime, GoogleDrive}
+import com.google.api.client.util.DateTime
+import com.google.api.services.drive.{Drive, model}
+import io.github.morgaroth.gdrivesync.parallel.drive.{Mime, GoogleDrive}
 
-import scala.collection.JavaConverters._
-import scala.language.implicitConversions
+import scala.collection.JavaConversions._
 import scala.util.Try
 
 class GFile(var _raw: model.File)(implicit _service: GoogleDrive) {
-  def inTrash: Boolean = _raw.getExplicitlyTrashed
-
-  def notTrashed = !inTrash
-
-  def md5 = _raw.getMd5Checksum
-
-  def updateInfo: GFile = _service.detailedInfo(id)
-
-  def isDirectory = _raw.getMimeType == Mime.dir
-
-  def isDir = isDirectory
-
-  def isFile = !isDirectory
-
-  def id = _raw.getId
-
-  def name = _raw.getTitle
-
-  def created: DateTime = _raw.getCreatedDate
-
-  def lastModified = _raw.getModifiedDate
-
+  val inTrash: Boolean = _raw.getExplicitlyTrashed
+  val notTrashed = !inTrash
+  val md5 = _raw.getMd5Checksum
+  val id = _raw.getId
+  val name = _raw.getTitle
+  val created: DateTime = _raw.getCreatedDate
+  val updateInfo: GFile = _service.detailedInfo(id)
+  val isDirectory = _raw.getMimeType == Mime.dir
+  val isDir = isDirectory
+  val isFile = !isDirectory
+  val lastModified = _raw.getModifiedDate
   def updateContent(newContent: File) = _service.update(this, newContent)
-
   def lastModified_= = (dateMillis: Long) => {
     val req: Drive#Files#Patch = _service.drive.files().patch(id, new model.File().setModifiedDate(new DateTime(dateMillis)))
     req.setSetModifiedDate(true)
@@ -48,7 +35,7 @@ class GFile(var _raw: model.File)(implicit _service: GoogleDrive) {
 
   def updateInfoInThis() = _raw = _service.detailedInfo(id)._raw
 
-  def children: List[GFile] = _service.drive.children().list(id).execute().getItems.asScala.map(x => _service.detailedInfo(x.getId)).toList
+  def children: List[GFile] = _service.drive.children().list(id).execute().getItems.map(x => _service.detailedInfo(x.getId)).toList
 
   def mkDir(childName: String) = {
     val result = _service.mkDir(id, childName)

@@ -1,4 +1,4 @@
-package io.github.morgaroth.gdrivesync.async.models
+package io.github.morgaroth.gdrivesync.parallel.models
 
 import akka.event.{LoggingAdapter, NoLogging}
 import com.typesafe.config.Config

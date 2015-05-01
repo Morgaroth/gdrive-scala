@@ -1,13 +1,13 @@
-package io.github.morgaroth.gdrivesync.async.actors
+package io.github.morgaroth.gdrivesync.parallel.actors
 
 import java.io.File
 
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.event.LoggingAdapter
 import com.typesafe.config.Config
-import io.github.morgaroth.gdrivesync.async.GoogleDrive
-import io.github.morgaroth.gdrivesync.async.models.{GFile, Loggers, SyncPath}
-import io.github.morgaroth.gdrivesync.helpers.hashable._
+import io.github.morgaroth.gdrivesync.parallel.drive.GoogleDrive
+import io.github.morgaroth.gdrivesync.parallel.models.{GFile, Loggers, SyncPath}
+import io.github.morgaroth.gdrivesync.parallel.helpers.hashable._
 
 import scala.util.{Failure, Try}
 

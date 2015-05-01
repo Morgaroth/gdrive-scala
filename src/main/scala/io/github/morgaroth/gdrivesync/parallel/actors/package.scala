@@ -1,8 +1,9 @@
-package io.github.morgaroth.gdrivesync.async
+package io.github.morgaroth.gdrivesync.parallel
 
 import java.io.File
 
-import io.github.morgaroth.gdrivesync.async.models.{SyncPath, GFile}
+import io.github.morgaroth.gdrivesync.parallel.drive.GoogleDrive
+import io.github.morgaroth.gdrivesync.parallel.models.{SyncPath, GFile}
 
 import scala.util.Try
 

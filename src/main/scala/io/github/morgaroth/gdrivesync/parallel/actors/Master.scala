@@ -1,4 +1,4 @@
-package io.github.morgaroth.gdrivesync.async.actors
+package io.github.morgaroth.gdrivesync.parallel.actors
 
 import akka.actor.{Actor, ActorRef}
 import com.typesafe.config.Config

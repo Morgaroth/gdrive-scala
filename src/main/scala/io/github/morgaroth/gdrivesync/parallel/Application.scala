@@ -1,4 +1,4 @@
-package io.github.morgaroth.gdrivesync
+package io.github.morgaroth.gdrivesync.parallel
 
 import java.io.File
 
@@ -8,6 +8,6 @@ object Application {
     val localRoot: File = new File(path).getCanonicalFile
     localRoot.mkdirs()
     println(s"DEBUG: ${localRoot.getAbsolutePath}")
-    new Logic {} synchronizeDrive localRoot
+
   }
 }
