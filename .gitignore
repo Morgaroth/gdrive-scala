@@ -1,0 +1,8 @@
+logs
+project/project
+target
+.history
+/.idea
+test*
+creds.json
+.store
