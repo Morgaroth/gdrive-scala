@@ -1,10 +1,14 @@
 package io.github.morgaroth.gdrivesync.parallel.actors
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, Props}
 import com.typesafe.config.Config
+import net.ceedubs.ficus.Ficus._
 
 import scala.collection.mutable
-import net.ceedubs.ficus.Ficus._
+
+object Master {
+  def props(cfg: Config) = Props(classOf[Master], cfg)
+}
 
 class Master(cfg: Config) extends Actor {
 
