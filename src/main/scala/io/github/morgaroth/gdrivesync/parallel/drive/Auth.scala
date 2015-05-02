@@ -10,7 +10,6 @@ import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.client.util.store.FileDataStoreFactory
 import com.google.api.services.drive.DriveScopes.{DRIVE, DRIVE_METADATA}
-import AppName
 
 import scala.collection.JavaConverters._
 import scala.io.StdIn

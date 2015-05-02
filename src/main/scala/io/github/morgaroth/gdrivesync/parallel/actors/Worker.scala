@@ -45,10 +45,30 @@ class Worker(logging: Loggers) extends Actor with ActorLogging {
           }
         case Some(remote) if local.exists() && remote.isDir =>
           logging.infos.info(s"directory $path is in sync")
+          val nextPaths = readFilePairs(local, remote, path, service)
+          logging.infos.info(s"from $path added ${nextPaths.length} new file pairs to sync queue")
+          sender() ! nextPaths
         case anotherCase =>
           logging.confirmations.warning(s"another case of sync file $anotherCase, $pair, $path")
       }
       sender() ! Done
+  }
+
+  def readFilePairs(local: File, remote: GFile, path: SyncPath, service: GoogleDrive): List[SyncFile] = {
+    val localFiles = local.listFiles().map(x => x.getName -> x).toMap
+
+    val remoteOrBoth: Map[String, (File, Some[GFile])] = remote.children.map { r =>
+      r.name ->(localFiles.getOrElse(r.name, new File(local, r.name)), Some(r))
+    }.toMap
+
+    val onlyLocal: Map[String, (File, Option[GFile])] = localFiles
+      .filterKeys(x => !remoteOrBoth.keySet.contains(x))
+      .mapValues(f => (f, None))
+
+    (onlyLocal ++ remoteOrBoth map {
+      case (_, (localChild, remoteChild)) =>
+        SyncFile(FilePair(localChild, remoteChild, local, remote), path :+ localChild, service)
+    }).toList
   }
 
   def createDirectoryRemotely(pair: FilePair, path: SyncPath, service: GoogleDrive, local: File): Try[List[SyncFile]] = {

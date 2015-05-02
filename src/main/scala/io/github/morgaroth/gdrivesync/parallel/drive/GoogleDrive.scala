@@ -12,7 +12,6 @@ import com.google.api.client.http.FileContent
 import com.google.api.client.util.DateTime
 import com.google.api.services.drive.model.{About, ParentReference}
 import com.google.api.services.drive.{Drive, model}
-import Mime
 import io.github.morgaroth.gdrivesync.parallel.models
 import io.github.morgaroth.gdrivesync.parallel.models.{GFile, SyncPath}
 
