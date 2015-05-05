@@ -2,17 +2,17 @@ package io.github.morgaroth.gdrivesync.parallel.actors
 
 import java.io.File
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.event.LoggingAdapter
 import com.typesafe.config.Config
 import io.github.morgaroth.gdrivesync.parallel.drive.GoogleDrive
-import io.github.morgaroth.gdrivesync.parallel.models.{GFile, Loggers, SyncPath}
 import io.github.morgaroth.gdrivesync.parallel.helpers.hashable._
+import io.github.morgaroth.gdrivesync.parallel.models.{GFile, Loggers, SyncPath}
 
 import scala.util.{Failure, Try}
 
 object Worker {
-  def props(cfg: Config) = Props(classOf[Worker], Loggers.fromConfig(cfg))
+  def props(cfg: Config, system: ActorSystem) = Props(classOf[Worker], Loggers.fromConfig(cfg, system))
 }
 
 class Worker(logging: Loggers) extends Actor with ActorLogging {
@@ -22,29 +22,48 @@ class Worker(logging: Loggers) extends Actor with ActorLogging {
       val local = pair.local
       pair.remote match {
         case Some(remote) if local.isFile && remote.isFile =>
-          if (local.toMD5 == remote.md5) {
-            logging.infos.info(s"file $path is in sync")
-          } else {
-            if (remote.lastModified.getValue > local.lastModified()) {
-              fetchFileFromDrive(remote, local, path, service)
+          logging.debug.info(s"synchronising file $path, exists both locally and remotely")
+          Try {
+            if (local.toMD5 equalsIgnoreCase remote.md5) {
+              logging.infos.info(s"file $path is in sync")
+              logging.resolve.info(s"file $path in in sync, because has the same MD5 sum (${remote.md5})")
             } else {
-              updateFileInDrive(local, remote, path, service)
+              if (remote.lastModified.getValue > local.lastModified()) {
+                logging.resolve.info(s"file $path needs update, in remote is never version, downloading....")
+                fetchFileFromDrive(remote, local, path, service)
+              } else {
+                logging.resolve.info(s"file $path needs update, in local is never version, uploading....")
+                updateFileInDrive(local, remote, path, service)
+              }
             }
+          } recover {
+            case another: Throwable =>
+              logging.failures.error(s"syncing file $path failed because another error occurred ${another.getMessage}\n${another.getStackTrace.map(_.toString).mkString("\n")}")
+              Failure(another)
           }
         case Some(remote) if !local.exists() && remote.isFile =>
+          logging.debug.info(s"synchronising file $path, exists only remotely")
+          logging.resolve.info(s"synchronising file $path, exists only remotely")
           fetchFileFromDrive(remote, local, path, service)
         case Some(remote) if !local.exists() && remote.isDir =>
+          logging.debug.info(s"synchronising directory $path, exists only remotely")
+          logging.resolve.info(s"synchronising directory $path, exists only remotely")
           createDirectoryLocally(remote, local, path, service, logging.confirmations) map { newPairs =>
             sender() ! newPairs
           }
         case None if local.isFile =>
+          logging.debug.info(s"synchronising file $path, exists only locally")
+          logging.resolve.info(s"synchronising file $path, exists only locally")
           uploadFileToDrive(local, pair.remoteParent, path, service)
         case None if local.isDirectory =>
+          logging.debug.info(s"synchronising directory $path, exists only locally")
+          logging.resolve.info(s"synchronising directory $path, exists only locally")
           createDirectoryRemotely(pair, path, service, local) map { newPairs =>
             sender() ! newPairs
           }
         case Some(remote) if local.exists() && remote.isDir =>
           logging.infos.info(s"directory $path is in sync")
+          logging.resolve.info(s"directory $path is in sync")
           val nextPaths = readFilePairs(local, remote, path, service)
           logging.infos.info(s"from $path added ${nextPaths.length} new file pairs to sync queue")
           sender() ! nextPaths

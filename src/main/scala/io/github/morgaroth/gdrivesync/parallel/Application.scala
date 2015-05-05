@@ -14,14 +14,13 @@ object Application {
     val path = if (args.length > 0) args(0) else "."
     val localRoot: File = new File(path).getCanonicalFile
     localRoot.mkdirs()
-    println(s"DEBUG: ${localRoot.getAbsolutePath}")
     val maybeCreds = Auth.authorizeUser(localRoot.getAbsolutePath)
     maybeCreds.map { creds =>
-      val system = ActorSystem()
-      val master = system actorOf Master.props(ConfigFactory.parseString( """"""))
       val service = new GoogleDrive(creds)
-      val rootGFile = service.rootGFile
-      master ! SyncFile(FilePair(localRoot, Some(rootGFile), localRoot, rootGFile), SyncPath(localRoot)(), service)
+      val rootGFile = service.detailedInfoOpt(service.about.getRootFolderId)
+      val system = ActorSystem()
+      val master = system.actorOf(Master.props(ConfigFactory.load()))
+      master ! SyncFile(FilePair(localRoot, Some(rootGFile.get), localRoot, rootGFile.get), SyncPath.empty(localRoot), service)
     }.getOrElse {
       println(s"Cannot determine auth credentials")
     }

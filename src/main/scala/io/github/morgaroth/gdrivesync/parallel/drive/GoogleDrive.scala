@@ -41,6 +41,8 @@ class GoogleDrive(credentials: Credential) {
 
   def detailedInfo(fileId: String): GFile = drive.files().get(fileId).execute()
 
+  def detailedInfoOpt(fileId: String) = Try(drive.files().get(fileId).execute()).map(x => x: GFile)
+
   def rootGFile: GFile = detailedInfo(about.getRootFolderId)
 
   def rootDir: List[GFile] = rootGFile.children

@@ -13,9 +13,10 @@ object Master {
 class Master(cfg: Config) extends Actor {
 
   val workerCnt = cfg.as[Option[Int]]("workers").getOrElse(10)
-  var freeWorkers = List.fill(workerCnt)(context actorOf Worker.props(cfg))
+  var freeWorkers = List.fill(workerCnt)(context actorOf Worker.props(cfg, context.system))
   var pending = List.empty[SyncFile]
   val busy = mutable.Set.empty[ActorRef]
+
 
   override def receive: Receive = {
     case sf: SyncFile =>
@@ -26,6 +27,7 @@ class Master(cfg: Config) extends Actor {
       dispatch()
     case Done =>
       busy -= sender()
+      freeWorkers = sender() :: freeWorkers
       dispatch()
       checkEnd()
   }
@@ -48,5 +50,4 @@ class Master(cfg: Config) extends Actor {
       context.system.shutdown()
     }
   }
-
 }
