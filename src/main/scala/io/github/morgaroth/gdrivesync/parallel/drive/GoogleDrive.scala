@@ -19,6 +19,8 @@ import scala.collection.JavaConversions._
 import scala.util.{Success, Try}
 
 
+class FileHasntDownloadableLink(filePath: String) extends IllegalArgumentException(s"file $filePath hasn't downloadable link")
+
 object GoogleDrive {
   def default = new GoogleDrive(Auth.tryLoadPreviouslySaved().get)
 }

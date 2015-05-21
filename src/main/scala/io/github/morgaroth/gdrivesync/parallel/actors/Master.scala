@@ -2,6 +2,7 @@ package io.github.morgaroth.gdrivesync.parallel.actors
 
 import akka.actor.{Actor, ActorRef, Props}
 import com.typesafe.config.Config
+import io.github.morgaroth.gdrivesync.parallel.models.Loggers
 import net.ceedubs.ficus.Ficus._
 
 import scala.collection.mutable
@@ -13,7 +14,8 @@ object Master {
 class Master(cfg: Config) extends Actor {
 
   val workerCnt = cfg.as[Option[Int]]("workers").getOrElse(10)
-  var freeWorkers = List.fill(workerCnt)(context actorOf Worker.props(cfg, context.system))
+  val loggers = Loggers.fromConfig(cfg, context.system)
+  var freeWorkers = List.fill(workerCnt)(context actorOf Worker.props(cfg, loggers))
   var pending = List.empty[SyncFile]
   val busy = mutable.Set.empty[ActorRef]
 
@@ -46,6 +48,7 @@ class Master(cfg: Config) extends Actor {
 
   def checkEnd() {
     if (freeWorkers.length == workerCnt && busy.isEmpty && pending.isEmpty) {
+      loggers.progress.info("Synchronizing done. Existing...")
       context.children.foreach(context.stop)
       context.system.shutdown()
     }

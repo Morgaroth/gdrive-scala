@@ -12,7 +12,7 @@ import io.github.morgaroth.gdrivesync.parallel.models.{GFile, Loggers, SyncPath}
 import scala.util.{Failure, Try}
 
 object Worker {
-  def props(cfg: Config, system: ActorSystem) = Props(classOf[Worker], Loggers.fromConfig(cfg, system))
+  def props(cfg: Config, loggers: Loggers) = Props(classOf[Worker], loggers)
 }
 
 class Worker(logging: Loggers) extends Actor with ActorLogging {
@@ -21,6 +21,9 @@ class Worker(logging: Loggers) extends Actor with ActorLogging {
     case SyncFile(pair, path, service) =>
       val local = pair.local
       pair.remote match {
+        case Some(remote) if remote.inTrash =>
+          logging.debug.info(s"not synchronising file $path, it is trashed in google side, synchronizing trashed will be implemented!")
+          logging.resolve.info(s"file $path is ignored, it is trashed in Google Drive")
         case Some(remote) if local.isFile && remote.isFile =>
           logging.debug.info(s"synchronising file $path, exists both locally and remotely")
           Try {
@@ -41,7 +44,10 @@ class Worker(logging: Loggers) extends Actor with ActorLogging {
               logging.failures.error(s"syncing file $path failed because another error occurred ${another.getMessage}\n${another.getStackTrace.map(_.toString).mkString("\n")}")
               Failure(another)
           }
-        case Some(remote) if !local.exists() && remote.isFile =>
+        case Some(remote) if !local.exists() && remote.isFile && remote.downloadLink.isEmpty =>
+          logging.debug.info(s"synchronising file $path, will not be synchronized, hasn't downloadable link, has mime type ${remote._raw.getMimeType}")
+          logging.resolve.info(s"synchronising file $path, will not be synchronized, hasn't downloadable link")
+        case Some(remote) if !local.exists() && remote.isFile && remote.downloadLink.nonEmpty =>
           logging.debug.info(s"synchronising file $path, exists only remotely")
           logging.resolve.info(s"synchronising file $path, exists only remotely")
           fetchFileFromDrive(remote, local, path, service)
