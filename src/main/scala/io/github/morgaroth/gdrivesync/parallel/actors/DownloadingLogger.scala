@@ -15,6 +15,9 @@ object DownloadingLogger {
 }
 
 class DownloadingLogger(logging: Loggers, path: String) extends Actor {
+
+  import context.dispatcher
+
   self ! Log
 
   override def receive: Receive = {
