@@ -2,13 +2,14 @@ package io.github.morgaroth.gdrivesync.parallel.actors
 
 import java.io.File
 
-import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
+import akka.actor.{Actor, ActorLogging, Props}
 import akka.event.LoggingAdapter
 import com.typesafe.config.Config
 import io.github.morgaroth.gdrivesync.parallel.drive.GoogleDrive
 import io.github.morgaroth.gdrivesync.parallel.helpers.hashable._
 import io.github.morgaroth.gdrivesync.parallel.models.{GFile, Loggers, SyncPath}
 
+import scala.language.postfixOps
 import scala.util.{Failure, Try}
 
 object Worker {
@@ -137,18 +138,21 @@ class Worker(logging: Loggers) extends Actor with ActorLogging {
   }
 
   def fetchFileFromDrive(from: GFile, target: File, path: SyncPath, service: GoogleDrive): Try[File] = {
-    logging.infos.info(s"downloading remote file(id=${from.id}}) to ${path :+ target} started...")
+    val thisPath = path :+ target
+    logging.infos.info(s"downloading remote file(id=${from.id}}) to $thisPath started...")
+    val logger = context actorOf DownloadingLogger.props(thisPath toString, logging)
     val logged = service.newDownload(from, target, path) map { sent =>
-      logging.confirmations.info(s"successful download of file ${path :+ target}")
+      logging.confirmations.info(s"successful download of file $thisPath")
       sent
     } recoverWith {
       case notReady: AssertionError =>
-        logging.failures.error(s"download of file ${path :+ target} failed because ${notReady.getMessage}")
+        logging.failures.error(s"download of file $thisPath failed because ${notReady.getMessage}")
         Failure(notReady)
       case another: Throwable =>
-        logging.failures.error(s"download of file ${path :+ target} failed because another error occurred ${another.getMessage}\n${another.getStackTrace.map(_.toString).mkString("\n")}")
+        logging.failures.error(s"download of file $thisPath failed because another error occurred ${another.getMessage}\n${another.getStackTrace.map(_.toString).mkString("\n")}")
         Failure(another)
     }
+    context stop logger
     logged
   }
 
