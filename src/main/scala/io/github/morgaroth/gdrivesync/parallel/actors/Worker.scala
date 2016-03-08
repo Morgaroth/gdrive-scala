@@ -13,10 +13,10 @@ import scala.language.postfixOps
 import scala.util.{Failure, Try}
 
 object Worker {
-  def props(cfg: Config, loggers: Loggers) = Props(classOf[Worker], loggers)
+  def props(cfg: Config, loggers: Loggers, syncToServer: Boolean) = Props(classOf[Worker], loggers, syncToServer)
 }
 
-class Worker(logging: Loggers) extends Actor with ActorLogging {
+class Worker(logging: Loggers, syncToServer: Boolean) extends Actor with ActorLogging {
 
   override def receive: Receive = {
     case SyncFile(pair, path, service) =>
@@ -48,16 +48,24 @@ class Worker(logging: Loggers) extends Actor with ActorLogging {
         case Some(remote) if !local.exists() && remote.isFile && remote.downloadLink.isEmpty =>
           logging.debug.info(s"synchronising file $path, will not be synchronized, hasn't downloadable link, has mime type ${remote._raw.getMimeType}")
           logging.resolve.info(s"synchronising file $path, will not be synchronized, hasn't downloadable link")
-        case Some(remote) if !local.exists() && remote.isFile && remote.downloadLink.nonEmpty =>
+        case Some(remote) if !local.exists() && remote.isFile && remote.downloadLink.nonEmpty && !syncToServer =>
           logging.debug.info(s"synchronising file $path, exists only remotely")
           logging.resolve.info(s"synchronising file $path, exists only remotely")
           fetchFileFromDrive(remote, local, path, service)
-        case Some(remote) if !local.exists() && remote.isDir =>
+        case Some(remote) if !local.exists() && remote.isFile && remote.downloadLink.nonEmpty && syncToServer =>
+          logging.debug.info(s"synchronising file $path, exists only remotely, will be removed in remote because syncToServer flag is set")
+          logging.resolve.info(s"synchronising file $path, exists only remotely, will be removed in remote because syncToServer flag is set")
+          deleteFileInDrive(remote, path, service)
+        case Some(remote) if !local.exists() && remote.isDir && !syncToServer =>
           logging.debug.info(s"synchronising directory $path, exists only remotely")
           logging.resolve.info(s"synchronising directory $path, exists only remotely")
           createDirectoryLocally(remote, local, path, service, logging.confirmations) map { newPairs =>
             sender() ! newPairs
           }
+        case Some(remote) if !local.exists() && remote.isDir && syncToServer =>
+          logging.debug.info(s"synchronising directory $path, exists only remotely, will be removed in remote because syncToServer flag is set")
+          logging.resolve.info(s"synchronising directory $path, exists only remotely, will be removed in remote because syncToServer flag is set")
+          deleteFileInDrive(remote, path, service)
         case None if local.isFile =>
           logging.debug.info(s"synchronising file $path, exists only locally")
           logging.resolve.info(s"synchronising file $path, exists only locally")
@@ -187,4 +195,21 @@ class Worker(logging: Loggers) extends Actor with ActorLogging {
     }
     loggedOut
   }
+
+  def deleteFileInDrive(remote: GFile, path: SyncPath, service: GoogleDrive) = {
+    logging.infos.info(s"removing remote file ${path}started...")
+    val loggedOut = service.removeFile(remote) map { uploaded =>
+      logging.confirmations.info(s"successful deletion of file $path")
+      uploaded
+    } recoverWith {
+      case notReady: AssertionError =>
+        logging.failures.error(s"deletion of file $path failed because ${notReady.getMessage}")
+        Failure(notReady)
+      case another: Throwable =>
+        logging.failures.error(s"deletion of file $path failed because another error occurred ${another.getMessage}\n${another.getStackTrace.map(_.toString).mkString("\n")}")
+        Failure(another)
+    }
+    loggedOut
+  }
+
 }

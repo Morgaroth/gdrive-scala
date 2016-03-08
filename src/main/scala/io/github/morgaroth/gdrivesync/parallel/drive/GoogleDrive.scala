@@ -59,17 +59,17 @@ class GoogleDrive(credentials: Credential) {
       .setDirectUploadEnabled(false)
       .setChunkSize(2 * MINIMUM_CHUNK_SIZE)
       .setProgressListener(new MediaHttpUploaderProgressListener {
-      override def progressChanged(uploader: MediaHttpUploader): Unit = {
-        val state = uploader.getUploadState match {
-          case INITIATION_STARTED => "in during initialization..."
-          case INITIATION_COMPLETE => "initialized, uploading..."
-          case MEDIA_IN_PROGRESS => s"progress: ${(uploader.getProgress * 100).toInt}%"
-          case MEDIA_COMPLETE => "is completed."
-          case another => another.name()
+        override def progressChanged(uploader: MediaHttpUploader): Unit = {
+          val state = uploader.getUploadState match {
+            case INITIATION_STARTED => "in during initialization..."
+            case INITIATION_COMPLETE => "initialized, uploading..."
+            case MEDIA_IN_PROGRESS => s"progress: ${(uploader.getProgress * 100).toInt}%"
+            case MEDIA_COMPLETE => "is completed."
+            case another => another.name()
+          }
+          println(s"uploading ${newContent.getName} $state")
         }
-        println(s"uploading ${newContent.getName} $state")
-      }
-    })
+      })
     request.execute()
   }
 
@@ -88,17 +88,17 @@ class GoogleDrive(credentials: Credential) {
         .setDirectUploadEnabled(false)
         .setChunkSize(2 * MINIMUM_CHUNK_SIZE)
         .setProgressListener(new MediaHttpUploaderProgressListener {
-        override def progressChanged(uploader: MediaHttpUploader): Unit = {
-          val state = uploader.getUploadState match {
-            case INITIATION_STARTED => "in during initialization..."
-            case INITIATION_COMPLETE => "initialized, uploading..."
-            case MEDIA_IN_PROGRESS => s"progress: ${(uploader.getProgress * 100).toInt}%"
-            case MEDIA_COMPLETE => "is completed."
-            case another => another.name()
+          override def progressChanged(uploader: MediaHttpUploader): Unit = {
+            val state = uploader.getUploadState match {
+              case INITIATION_STARTED => "in during initialization..."
+              case INITIATION_COMPLETE => "initialized, uploading..."
+              case MEDIA_IN_PROGRESS => s"progress: ${(uploader.getProgress * 100).toInt}%"
+              case MEDIA_COMPLETE => "is completed."
+              case another => another.name()
+            }
+            println(s"uploading ${file.getName} $state")
           }
-          println(s"uploading ${file.getName} $state")
-        }
-      })
+        })
       insert.execute()
     }
 
@@ -196,4 +196,9 @@ class GoogleDrive(credentials: Credential) {
       execute: GFile
     })
   }
+
+  def removeFile(remote: GFile) = {
+    Try(drive.files().delete(remote.id).execute())
+  }
+
 }

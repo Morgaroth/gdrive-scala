@@ -9,16 +9,21 @@ import scala.collection.mutable
 
 object Master {
   def props(cfg: Config) = Props(classOf[Master], cfg)
+
+  case object Dispatch
+
 }
 
 class Master(cfg: Config) extends Actor {
 
   val workerCnt = cfg.as[Option[Int]]("workers").getOrElse(10)
   val loggers = Loggers.fromConfig(cfg, context.system)
-  var freeWorkers = List.fill(workerCnt)(context actorOf Worker.props(cfg, loggers))
+  val syncToServer = cfg.as[Option[Boolean]]("sync-to-server").getOrElse(false)
+  var freeWorkers = List.fill(workerCnt)(context actorOf Worker.props(cfg, loggers, syncToServer))
   var pending = List.empty[SyncFile]
   val busy = mutable.Set.empty[ActorRef]
 
+  loggers.infos.info(s"Running sync with $workerCnt workers and sync to server flag $syncToServer")
 
   override def receive: Receive = {
     case sf: SyncFile =>
